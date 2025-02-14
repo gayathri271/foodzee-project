@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foodiez - Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="styles.css">
+    <!-- <link rel="stylesheet" href="styles.css"> -->
+</head>
+<body>
+    <div class="container py-5" id="loginModal">
+        <h2 class="text-center">Login to Foodiez</h2>
+        <form id="login-form" class="mt-4 mx-auto" style="max-width: 400px;">
+            <div class="mb-3">
+                <label for="login-email" class="form-label">Email</label>
+                <input type="email" id="login-email" class="form-control" placeholder="Enter your email" required>
+            </div>
+            <div class="mb-3">
+                <label for="login-password" class="form-label">Password</label>
+                <input type="password" id="login-password" class="form-control" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="loginSubmitBtn">Login</button>
+        </form>
+        <p class="text-center mt-3">Don't have an account? <a href="signup.html">Sign Up</a></p>
+    </div>
+
+    <script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDt2TyQsktS4hvEwNvWekeUweCAA0NFBX0",
+    authDomain: "foodiezproject.firebaseapp.com",
+    databaseURL: "https://foodiezproject-default-rtdb.firebaseio.com",
+    projectId: "foodiezproject",
+    storageBucket: "foodiezproject.firebasestorage.app",
+    messagingSenderId: "832548225440",
+    appId: "1:832548225440:web:b902256b6183568ff624c5"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const database = getDatabase(app);
+
+document.getElementById("loginSubmitBtn").addEventListener("click", async (event) => {
+    event.preventDefault();
+
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        const usersRef = ref(database, 'users');
+        const snapshot = await get(usersRef); // Ensure 'get' is imported
+
+        if (snapshot.exists()) {
+            let foundUser = null;
+            snapshot.forEach((childSnapshot) => {
+                const userData = childSnapshot.val();
+                if (userData.email === email) {
+                    foundUser = userData;
+                }
+            });
+
+            if (foundUser) {
+                Swal.fire({
+                    title: "Login Successful!",
+                    icon: "success",
+                }).then(() => {
+                    location.href = "../dashboard/home.html";
+                });
+            } else {
+                Swal.fire({
+                    title: "Login Failed",
+                    text: "User data not found.",
+                    icon: "error",
+                });
+            }
+        } else {
+            Swal.fire({
+                title: "Login Failed",
+                text: "No users found in the database.",
+                icon: "error",
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            title: "Login Failed",
+            text: error.message,
+            icon: "error",
+        });
+    }
+});
+
+    </script>
+</body>
+</html>
+
+
+
