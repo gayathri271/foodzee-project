@@ -9,7 +9,9 @@ body {
     font-weight: bold;
     color: #fd7e14 !important;
 }
-
+.navbar-toggler{
+    margin-left: auto;
+}
 .nav-icon {
     font-size: 1.2rem;
     color: #6c757d;

@@ -724,37 +724,11 @@ document.querySelectorAll('.category-item').forEach(item => {
 
 const addtocart=document.getElementById('addtocart')
 addtocart.addEventListener("click",()=>{
-    location.href="addtocart.html"
+    location.href="cart.html"
 })
 
 
 
-
-
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-// import { getAuth } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
-// import { getDatabase, ref, get, child, push, set } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
-
-// // ... (keep your existing Firebase config and initialization)
-
-// function createFoodCard(food) {
-//     return `
-//     <div class="col-md-6 mb-4">
-//         <div class="food-card">
-//             <div class="d-flex align-items-center">
-//                 <div class="food-image-wrapper">
-//                     <img src="${food.image}" alt="${food.title}" class="food-image">
-//                 </div>
-//                 <div class="food-info ms-3">
-//                     <h5 class="mb-1">${food.title}</h5>
-//                     <p class="mb-1">₹${food.price}</p>
-//                     <button class="add-btn" onclick="addToCart('${food.title}', ${food.price}, '${food.image}')">Add</button>
-//                 </div>
-//             </div>
-//         </div>
-//     </div>
-//     `;
-// }
 
 // Add this function to handle adding items to cart
 window.addToCart = async function(title, price, image) {
@@ -783,3 +757,7 @@ cartIcon.addEventListener('click', () => {
 });
 
 // ... (keep your existing search and category handling code)
+
+
+
+
