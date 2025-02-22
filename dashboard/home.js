@@ -563,16 +563,9 @@
 //         }
 // ];
 
-
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-// import { getAuth } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
-// import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
-
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
-import { getDatabase, ref, get, child, push, set } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
-
+import { getDatabase, ref, get, child, push, set, remove } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDt2TyQsktS4hvEwNvWekeUweCAA0NFBX0",
@@ -588,25 +581,12 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-
 // Get DOM elements
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 const resultsGrid = document.getElementById('resultsGrid');
 const categoriesSection = document.getElementById('categoriesSection');
 const welcomeSection = document.getElementById('welcomesection');
-
-// let postForm =document.getElementById("pBtn");
-// postForm.addEventListener("click",async(e)=>{
-//   e.preventDefault()
-//   await set(ref(database,"AllFoodTypes"),{
-//     FoodData:FoodData,
-//   }).then(()=>{
-//     alert("Food Posted Successfully")
-//   })
-// })
-
-
 
 function createFoodCard(food) {
     return `
@@ -627,60 +607,25 @@ function createFoodCard(food) {
     `;
 }
 
-// Function to create a food card
-// function createFoodCard(food) {
-//     return `
-//     <div class="col-md-6 mb-4">
-//     <div class="food-card">
-//         <div class="d-flex align-items-center">
-//             <!-- Image Section -->
-//             <div class="food-image-wrapper">
-//                 <img src="${food.image}" alt="${food.title}" class="food-image">
-//             </div>
-            
-//             <!-- Text and Button Section -->
-//             <div class="food-info ms-3">
-//                 <h5 class="mb-1">${food.title}</h5>
-//                 <p class="mb-1">₹${food.price}</p>
-//                 <button class="add-btn" onclick="addtocart()">Add</button>
-//             </div>
-//         </div>
-//     </div>
-// </div>
-
-//     `;
-// }
-
-// Function to filter and display search results
 async function handleSearch(searchTerm) {
     try {
-        // Get reference to the food items in the database
         const dbRef = ref(database);
-        const snapshot = await get(child(dbRef, 'AllFoodTypes/FoodData')); // Assuming 'foods' is your collection name
+        const snapshot = await get(child(dbRef, 'AllFoodTypes/FoodData'));
         
         if (snapshot.exists()) {
             const foodData = snapshot.val();
-            
-            // Convert object to array if necessary
             const foodArray = Array.isArray(foodData) ? foodData : Object.values(foodData);
             
-            // Filter foods based on search term
             const filteredFoods = foodArray.filter(food => 
                 food.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 food.category.toLowerCase().includes(searchTerm.toLowerCase())
             );
 
-            // Hide welcome and categories sections
             welcomeSection.style.display = 'none';
             categoriesSection.style.display = 'none';
-            
-            // Show search results section
             searchResults.style.display = 'block';
-            
-            // Clear previous results
             resultsGrid.innerHTML = '';
             
-            // Display filtered results
             if (filteredFoods.length > 0) {
                 filteredFoods.forEach(food => {
                     resultsGrid.innerHTML += createFoodCard(food);
@@ -692,28 +637,22 @@ async function handleSearch(searchTerm) {
             console.log("No data available");
         }
     } catch (error) {
-      
         console.error("Error fetching data:", error);
     }
 }
 
-// Event listener for search input
 searchInput.addEventListener('input', (e) => {
     const searchTerm = searchInput.value.trim();
-    console.log(searchTerm);
-    
     
     if (searchTerm.length > 0) {
         handleSearch(searchTerm);
     } else {
-        // Show original sections when search is empty
         welcomeSection.style.display = 'block';
         categoriesSection.style.display = 'block';
         searchResults.style.display = 'none';
     }
 });
 
-// Add click event listeners to category items
 document.querySelectorAll('.category-item').forEach(item => {
     item.addEventListener('click', () => {
         const category = item.querySelector('p').textContent;
@@ -722,39 +661,325 @@ document.querySelectorAll('.category-item').forEach(item => {
     });
 });
 
-const addtocart=document.getElementById('addtocart')
-addtocart.addEventListener("click",()=>{
-    location.href="cart.html"
-})
+const addtocart = document.getElementById('addtocart');
+addtocart.addEventListener("click", () => {
+    location.href = "cart.html";
+});
+
+window.addToCart = async function (title, price, image) {
+    console.log("Adding to cart:", { title, price, image });
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Please log in to add items to your cart!");
+        return;
+    }
+
+    const userId = user.uid;
+    const cartRef = ref(database, `users/${userId}/cart`);
+
+    try {
+        const snapshot = await get(cartRef);
+        let cartItems = snapshot.exists() ? snapshot.val() : {};
+        let itemExists = false;
+        let updatedCart = {};
+
+        for (let key in cartItems) {
+            if (cartItems[key].title === title) {
+                cartItems[key].quantity += 1;
+                itemExists = true;
+            }
+            updatedCart[key] = cartItems[key];
+        }
+
+        if (!itemExists) {
+            const newItemRef = push(cartRef);
+            updatedCart[newItemRef.key] = {
+                title: title,
+                price: price,
+                image: image,
+                quantity: 1,
+                timestamp: Date.now()
+            };
+        }
+
+        console.log("Updated cart:", updatedCart);
+        await set(cartRef, updatedCart);
+        alert("Item added to cart successfully!");
+    } catch (error) {
+        console.error("Error adding to cart:", error);
+        alert("Failed to add item to cart");
+    }
+};
+
+window.removeFromCart = async function (itemId) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userId = user.uid;
+    const itemRef = ref(database, `users/${userId}/cart/${itemId}`);
+
+    try {
+        await remove(itemRef);
+        alert("Item removed from cart");
+        loadCart();
+    } catch (error) {
+        console.error("Error removing item:", error);
+    }
+};
+
+const cartIcon = document.querySelector(".fa-shopping-cart");
+cartIcon.addEventListener("click", () => {
+    window.location.href = "cart.html";
+});
 
 
+
+
+
+
+// import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+// import { getAuth } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
+// import { getDatabase, ref, get, child, push, set } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+
+
+
+// const firebaseConfig = {
+//   apiKey: "AIzaSyDt2TyQsktS4hvEwNvWekeUweCAA0NFBX0",
+//   authDomain: "foodiezproject.firebaseapp.com",
+//   projectId: "foodiezproject",
+//   storageBucket: "foodiezproject.appspot.com",
+//   messagingSenderId: "832548225440",
+//   appId: "1:832548225440:web:b902256b6183568ff624c5"
+// };
+
+// // Initialize Firebase
+// const app = initializeApp(firebaseConfig);
+// const auth = getAuth(app);
+// const database = getDatabase(app);
+
+
+// // Get DOM elements
+// const searchInput = document.getElementById('searchInput');
+// const searchResults = document.getElementById('searchResults');
+// const resultsGrid = document.getElementById('resultsGrid');
+// const categoriesSection = document.getElementById('categoriesSection');
+// const welcomeSection = document.getElementById('welcomesection');
+
+// // let postForm =document.getElementById("pBtn");
+// // postForm.addEventListener("click",async(e)=>{
+// //   e.preventDefault()
+// //   await set(ref(database,"AllFoodTypes"),{
+// //     FoodData:FoodData,
+// //   }).then(()=>{
+// //     alert("Food Posted Successfully")
+// //   })
+// // })
+
+
+
+// function createFoodCard(food) {
+//     return `
+//     <div class="col-md-6 mb-4">
+//         <div class="food-card">
+//             <div class="d-flex align-items-center">
+//                 <div class="food-image-wrapper">
+//                     <img src="${food.image}" alt="${food.title}" class="food-image">
+//                 </div>
+//                 <div class="food-info ms-3">
+//                     <h5 class="mb-1">${food.title}</h5>
+//                     <p class="mb-1">₹${food.price}</p>
+//                     <button class="add-btn" onclick="addToCart('${food.title}', ${food.price}, '${food.image}')">Add</button>
+//                 </div>
+//             </div>
+//         </div>
+//     </div>
+//     `;
+// }
+
+// // Function to create a food card
+// // function createFoodCard(food) {
+// //     return `
+// //     <div class="col-md-6 mb-4">
+// //     <div class="food-card">
+// //         <div class="d-flex align-items-center">
+// //             <!-- Image Section -->
+// //             <div class="food-image-wrapper">
+// //                 <img src="${food.image}" alt="${food.title}" class="food-image">
+// //             </div>
+            
+// //             <!-- Text and Button Section -->
+// //             <div class="food-info ms-3">
+// //                 <h5 class="mb-1">${food.title}</h5>
+// //                 <p class="mb-1">₹${food.price}</p>
+// //                 <button class="add-btn" onclick="addtocart()">Add</button>
+// //             </div>
+// //         </div>
+// //     </div>
+// // </div>
+
+// //     `;
+// // }
+
+// // Function to filter and display search results
+// async function handleSearch(searchTerm) {
+//     try {
+//         // Get reference to the food items in the database
+//         const dbRef = ref(database);
+//         const snapshot = await get(child(dbRef, 'AllFoodTypes/FoodData')); // Assuming 'foods' is your collection name
+        
+//         if (snapshot.exists()) {
+//             const foodData = snapshot.val();
+            
+//             // Convert object to array if necessary
+//             const foodArray = Array.isArray(foodData) ? foodData : Object.values(foodData);
+            
+//             // Filter foods based on search term
+//             const filteredFoods = foodArray.filter(food => 
+//                 food.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//                 food.category.toLowerCase().includes(searchTerm.toLowerCase())
+//             );
+
+//             // Hide welcome and categories sections
+//             welcomeSection.style.display = 'none';
+//             categoriesSection.style.display = 'none';
+            
+//             // Show search results section
+//             searchResults.style.display = 'block';
+            
+//             // Clear previous results
+//             resultsGrid.innerHTML = '';
+            
+//             // Display filtered results
+//             if (filteredFoods.length > 0) {
+//                 filteredFoods.forEach(food => {
+//                     resultsGrid.innerHTML += createFoodCard(food);
+//                 });
+//             } else {
+//                 resultsGrid.innerHTML = '<div class="col-12 text-center"><h3>No items found</h3></div>';
+//             }
+//         } else {
+//             console.log("No data available");
+//         }
+//     } catch (error) {
+      
+//         console.error("Error fetching data:", error);
+//     }
+// }
+
+// // Event listener for search input
+// searchInput.addEventListener('input', (e) => {
+//     const searchTerm = searchInput.value.trim();
+//     console.log(searchTerm);
+    
+    
+//     if (searchTerm.length > 0) {
+//         handleSearch(searchTerm);
+//     } else {
+//         // Show original sections when search is empty
+//         welcomeSection.style.display = 'block';
+//         categoriesSection.style.display = 'block';
+//         searchResults.style.display = 'none';
+//     }
+// });
+
+// Add click event listeners to category items
+// document.querySelectorAll('.category-item').forEach(item => {
+//     item.addEventListener('click', () => {
+//         const category = item.querySelector('p').textContent;
+//         searchInput.value = category;
+//         handleSearch(category);
+//     });
+// });
+
+// const addtocart=document.getElementById('addtocart')
+// addtocart.addEventListener("click",()=>{
+//     location.href="cart.html"
+// })
+
+
+
+// window.addToCart = async function (title, price, image) {
+//     const user = auth.currentUser;
+
+//     if (!user) {
+//         alert("Please log in to add items to your cart!");
+//         return;
+//     }
+
+//     const userId = user.uid;
+//     const cartRef = ref(database, `users/${userId}/cart`);
+
+//     try {
+//         // Fetch current cart items
+//         const snapshot = await get(cartRef);
+//         let cartItems = snapshot.exists() ? snapshot.val() : {};
+
+//         let itemExists = false;
+//         let updatedCart = {};
+
+//         // Check if item already exists in cart
+//         for (let key in cartItems) {
+//             if (cartItems[key].title === title) {
+//                 cartItems[key].quantity += 1; // Increase quantity
+//                 itemExists = true;
+//             }
+//             updatedCart[key] = cartItems[key];
+//         }
+
+//         if (!itemExists) {
+//             // Add new item to cart
+//             const newItemRef = push(cartRef);
+//             updatedCart[newItemRef.key] = {
+//                 title: title,
+//                 price: price,
+//                 image: image,
+//                 quantity: 1,
+//                 timestamp: Date.now()
+//             };
+//         }
+
+//         // Update cart in Firebase
+//         await set(cartRef, updatedCart);
+
+//         alert("Item added to cart successfully!");
+//     } catch (error) {
+//         console.error("Error adding to cart:", error);
+//         alert("Failed to add item to cart");
+//     }
+// };
+
+// Modify cart icon click handler
+// const cartIcon = document.querySelector(".fa-shopping-cart");
+// cartIcon.addEventListener("click", () => {
+//     window.location.href = "cart.html";
+// });
 
 
 // Add this function to handle adding items to cart
-window.addToCart = async function(title, price, image) {
-    try {
-        const cartRef = ref(database, 'cart');
-        const newCartItem = {
-            title: title,
-            price: price,
-            image: image,
-            quantity: 1,
-            timestamp: Date.now()
-        };
+// window.addToCart = async function(title, price, image) {
+//     try {
+//         const cartRef = ref(database, 'cart');
+//         const newCartItem = {
+//             title: title,
+//             price: price,
+//             image: image,
+//             quantity: 1,
+//             timestamp: Date.now()
+//         };
         
-        await push(cartRef, newCartItem);
-        alert('Item added to cart successfully!');
-    } catch (error) {
-        console.error("Error adding to cart:", error);
-        alert('Failed to add item to cart');
-    }
-}
+//         await push(cartRef, newCartItem);
+//         alert('Item added to cart successfully!');
+//     } catch (error) {
+//         console.error("Error adding to cart:", error);
+//         alert('Failed to add item to cart');
+//     }
+// }
 
-// Modify your cart icon click handler
-const cartIcon = document.querySelector('.fa-shopping-cart');
-cartIcon.addEventListener('click', () => {
-    window.location.href = 'cart.html';
-});
+// // Modify your cart icon click handler
+// const cartIcon = document.querySelector('.fa-shopping-cart');
+// cartIcon.addEventListener('click', () => {
+//     window.location.href = 'cart.html';
+// });
 
 // ... (keep your existing search and category handling code)
 
