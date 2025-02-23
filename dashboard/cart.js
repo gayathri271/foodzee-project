@@ -173,6 +173,68 @@ window.removeItem = async function(itemKey) {
 };
 
 // Checkout function (to be implemented)
-window.checkout = function() {
-    alert('Checkout functionality will be implemented here');
+// window.checkout = function() {
+//     alert('Checkout functionality will be implemented here');
+// };
+
+window.proceedToPay = function() {
+    const totalAmount = document.getElementById('cartTotal').textContent;
+    document.getElementById('paymentAmount').textContent = totalAmount;
+    
+    // Show payment modal
+    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    paymentModal.show();
+
+    document.getElementById('payNowBtn').onclick = function() {
+        processPayment(totalAmount);
+    };
 };
+
+function processPayment(amount) {
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Please log in to proceed with payment.");
+        return;
+    }
+
+    const options = {
+        key: "rzp_test_YOUR_KEY_HERE", // Replace with your Razorpay API key
+        amount: amount * 100, // Convert to paise
+        currency: "INR",
+        name: "Foodiez",
+        description: "Order Payment",
+        handler: function(response) {
+            alert("Payment Successful! Payment ID: " + response.razorpay_payment_id);
+            completeOrder();
+        },
+        prefill: {
+            email: user.email
+        },
+        theme: {
+            color: "#3399cc"
+        }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+}
+
+function completeOrder() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userId = user.uid;
+    const cartRef = ref(database, `users/${userId}/cart`);
+    const ordersRef = ref(database, `users/${userId}/orders`);
+
+    onValue(cartRef, (snapshot) => {
+        const cartData = snapshot.val();
+        if (cartData) {
+            update(ordersRef, cartData); // Save order details
+            remove(cartRef); // Clear cart after order
+        }
+    });
+
+    alert("Order placed successfully!");
+}
+

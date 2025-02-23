@@ -53,7 +53,25 @@
         <div id="cartItems"></div>
         <div class="text-end mt-4">
             <h4>Total: ₹<span id="cartTotal">0</span></h4>
-            <button class="btn btn-primary" onclick="checkout()">Proceed to pay</button>
+            <!-- <button class="btn btn-primary" onclick="checkout()">Proceed to pay</button> -->
+            <button class="btn btn-success mt-3" onclick="proceedToPay()">Proceed to Pay</button>
+            <!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="paymentModalLabel">Complete Your Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>Total Amount: ₹<span id="paymentAmount"></span></p>
+          <button class="btn btn-primary" id="payNowBtn">Pay Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
         </div>
     </div>
 
