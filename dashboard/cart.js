@@ -198,7 +198,7 @@ function processPayment(amount) {
     }
 
     const options = {
-        key: "rzp_test_YOUR_KEY_HERE", // Replace with your Razorpay API key
+        key: "rzp_test_olw8ebpoj8g3Bm", // Replace with your Razorpay API key
         amount: amount * 100, // Convert to paise
         currency: "INR",
         name: "Foodiez",
